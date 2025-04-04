@@ -5,6 +5,7 @@ import { useTeamStats, useTeamDetails, useAllTeamsDetails } from '../../hooks/us
 import { TeamLogo } from '../../components/TeamLogo';
 import { Navigation } from '../../components/Navigation';
 import { leagues } from '../../data/leagues';
+import { TeamSideStats } from '../../services/teamService';
 
 export default function ComparePage() {
   const [team1Slug, setTeam1Slug] = useState('');
@@ -35,137 +36,110 @@ export default function ComparePage() {
   const renderComparison = () => {
     if (!team1Data || !team2Data) return null;
 
-    const team1Totals = calculateTotalStats(team1Data);
-    const team2Totals = calculateTotalStats(team2Data);
-    const games = 10; // Número fixo de jogos para comparação
+    // Separar estatísticas por lado
+    const team1BlueSide = team1Data.find(side => side.side === 'blue') || {} as any;
+    const team1RedSide = team1Data.find(side => side.side === 'red') || {} as any;
+    const team2BlueSide = team2Data.find(side => side.side === 'blue') || {} as any;
+    const team2RedSide = team2Data.find(side => side.side === 'red') || {} as any;
+
+    // Função para renderizar estatísticas de um lado
+    const renderSideStats = (side: any, title: string) => {
+      const games = side.total || 5;
+      
+      return (
+        <div className="bg-white p-6 rounded-lg shadow-sm">
+          <h3 className="text-lg font-bold text-gray-900 mb-4">{title}</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-sm text-gray-600">Vitórias/Derrotas</p>
+              <p className="font-medium text-gray-900">{side.winners || 0}/{side.defeats || 0}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Total de Jogos</p>
+              <p className="font-medium text-gray-900">{games}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Kills (média)</p>
+              <p className="font-medium text-gray-900">{((side.kills || 0) / games).toFixed(1)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Torres (média)</p>
+              <p className="font-medium text-gray-900">{((side.tower_kills || 0) / games).toFixed(1)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Dragões (média)</p>
+              <p className="font-medium text-gray-900">{((side.dragon_kills || 0) / games).toFixed(1)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Barões (média)</p>
+              <p className="font-medium text-gray-900">{((side.baron_kills || 0) / games).toFixed(1)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">First Blood %</p>
+              <p className="font-medium text-gray-900">{((side.first_blood || 0) / games * 100).toFixed(1)}%</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">First Tower %</p>
+              <p className="font-medium text-gray-900">{((side.first_tower || 0) / games * 100).toFixed(1)}%</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">First Dragon %</p>
+              <p className="font-medium text-gray-900">{((side.first_dragon || 0) / games * 100).toFixed(1)}%</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">First Baron %</p>
+              <p className="font-medium text-gray-900">{((side.first_baron || 0) / games * 100).toFixed(1)}%</p>
+            </div>
+          </div>
+        </div>
+      );
+    };
 
     return (
       <div className="mt-8 space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Time 1 */}
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="flex-shrink-0">
-                {team1Details?.team.image_url && (
-                  <TeamLogo
-                    src={team1Details.team.image_url}
-                    alt={`Logo do ${team1Details.team.name}`}
-                    className="w-12 h-12"
-                  />
-                )}
-              </div>
-              <h2 className="text-xl font-bold text-gray-900">
-                {team1Details?.team.name || 'Time 1'}
-              </h2>
+        {/* Time 1 */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex-shrink-0">
+              {team1Details?.team.image_url && (
+                <TeamLogo
+                  src={team1Details.team.image_url}
+                  alt={`Logo do ${team1Details.team.name}`}
+                  className="w-12 h-12"
+                />
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <StatItem
-                label="Vitórias/Derrotas"
-                value={`${team1Totals.winners}/${team1Totals.defeats}`}
-                comparison={team2Totals}
-                compareField="winners"
-                higherIsBetter={true}
-              />
-              <StatItem
-                label="Kills (média)"
-                value={(team1Totals.kills / games).toFixed(1)}
-                comparison={team2Totals}
-                compareField="kills"
-                higherIsBetter={true}
-              />
-              <StatItem
-                label="Torres (média)"
-                value={(team1Totals.tower_kills / games).toFixed(1)}
-                comparison={team2Totals}
-                compareField="tower_kills"
-                higherIsBetter={true}
-              />
-              <StatItem
-                label="Dragões (média)"
-                value={(team1Totals.dragon_kills / games).toFixed(1)}
-                comparison={team2Totals}
-                compareField="dragon_kills"
-                higherIsBetter={true}
-              />
-              <StatItem
-                label="Barões (média)"
-                value={(team1Totals.baron_kills / games).toFixed(1)}
-                comparison={team2Totals}
-                compareField="baron_kills"
-                higherIsBetter={true}
-              />
-              <StatItem
-                label="First Blood %"
-                value={((team1Totals.first_blood / games) * 100).toFixed(1)}
-                comparison={team2Totals}
-                compareField="first_blood"
-                higherIsBetter={true}
-                isPercentage={true}
-              />
-            </div>
+            <h2 className="text-2xl font-bold text-gray-900">
+              {team1Details?.team.name || 'Time 1'}
+            </h2>
           </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {renderSideStats(team1BlueSide, 'Blue Side')}
+            {renderSideStats(team1RedSide, 'Red Side')}
+          </div>
+        </div>
 
-          {/* Time 2 */}
-          <div className="bg-white p-6 rounded-lg shadow-sm">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="flex-shrink-0">
-                {team2Details?.team.image_url && (
-                  <TeamLogo
-                    src={team2Details.team.image_url}
-                    alt={`Logo do ${team2Details.team.name}`}
-                    className="w-12 h-12"
-                  />
-                )}
-              </div>
-              <h2 className="text-xl font-bold text-gray-900">
-                {team2Details?.team.name || 'Time 2'}
-              </h2>
+        {/* Time 2 */}
+        <div className="space-y-6 mt-12">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex-shrink-0">
+              {team2Details?.team.image_url && (
+                <TeamLogo
+                  src={team2Details.team.image_url}
+                  alt={`Logo do ${team2Details.team.name}`}
+                  className="w-12 h-12"
+                />
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <StatItem
-                label="Vitórias/Derrotas"
-                value={`${team2Totals.winners}/${team2Totals.defeats}`}
-                comparison={team1Totals}
-                compareField="winners"
-                higherIsBetter={true}
-              />
-              <StatItem
-                label="Kills (média)"
-                value={(team2Totals.kills / games).toFixed(1)}
-                comparison={team1Totals}
-                compareField="kills"
-                higherIsBetter={true}
-              />
-              <StatItem
-                label="Torres (média)"
-                value={(team2Totals.tower_kills / games).toFixed(1)}
-                comparison={team1Totals}
-                compareField="tower_kills"
-                higherIsBetter={true}
-              />
-              <StatItem
-                label="Dragões (média)"
-                value={(team2Totals.dragon_kills / games).toFixed(1)}
-                comparison={team1Totals}
-                compareField="dragon_kills"
-                higherIsBetter={true}
-              />
-              <StatItem
-                label="Barões (média)"
-                value={(team2Totals.baron_kills / games).toFixed(1)}
-                comparison={team1Totals}
-                compareField="baron_kills"
-                higherIsBetter={true}
-              />
-              <StatItem
-                label="First Blood %"
-                value={((team2Totals.first_blood / games) * 100).toFixed(1)}
-                comparison={team1Totals}
-                compareField="first_blood"
-                higherIsBetter={true}
-                isPercentage={true}
-              />
-            </div>
+            <h2 className="text-2xl font-bold text-gray-900">
+              {team2Details?.team.name || 'Time 2'}
+            </h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {renderSideStats(team2RedSide, 'Red Side')}
+            {renderSideStats(team2BlueSide, 'Blue Side')}
           </div>
         </div>
       </div>
@@ -299,63 +273,4 @@ export default function ComparePage() {
       </div>
     </main>
   );
-}
-
-// Componente para exibir uma estatística com comparação
-function StatItem({ 
-  label, 
-  value, 
-  comparison, 
-  compareField, 
-  higherIsBetter = true,
-  isPercentage = false 
-}: { 
-  label: string;
-  value: string;
-  comparison: any;
-  compareField: string;
-  higherIsBetter?: boolean;
-  isPercentage?: boolean;
-}) {
-  const currentValue = parseFloat(value);
-  const compareValue = isPercentage 
-    ? (comparison[compareField] / 10) * 100 
-    : comparison[compareField] / 10;
-  
-  const difference = currentValue - compareValue;
-  const isBetter = higherIsBetter ? difference > 0 : difference < 0;
-  
-  return (
-    <div className="p-2">
-      <p className="text-sm font-medium text-gray-900">{label}</p>
-      <div className="flex items-center gap-2 mt-1">
-        <p className="font-semibold text-gray-900">{value}{isPercentage ? '%' : ''}</p>
-        {difference !== 0 && (
-          <span className={`text-sm font-medium ${isBetter ? 'text-green-600' : 'text-red-600'}`}>
-            {difference > 0 ? '+' : ''}{difference.toFixed(1)}{isPercentage ? '%' : ''}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Função auxiliar para calcular estatísticas totais
-function calculateTotalStats(data: any[]) {
-  return data.reduce((acc, side) => ({
-    winners: acc.winners + side.winners,
-    defeats: acc.defeats + side.defeats,
-    total: acc.total + side.total,
-    kills: acc.kills + side.kills,
-    tower_kills: acc.tower_kills + side.tower_kills,
-    dragon_kills: acc.dragon_kills + side.dragon_kills,
-    baron_kills: acc.baron_kills + side.baron_kills,
-    first_blood: acc.first_blood + side.first_blood,
-    first_tower: acc.first_tower + side.first_tower,
-    first_dragon: acc.first_dragon + side.first_dragon,
-    first_baron: acc.first_baron + side.first_baron,
-  }), {
-    winners: 0, defeats: 0, total: 0, kills: 0, tower_kills: 0, dragon_kills: 0,
-    baron_kills: 0, first_blood: 0, first_tower: 0, first_dragon: 0, first_baron: 0,
-  });
 }

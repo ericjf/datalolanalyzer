@@ -11,6 +11,21 @@ const fetcher = async (url: string) => {
   return response.json();
 };
 
+interface TeamSideStats {
+  side: 'blue' | 'red';
+  winners: number;
+  defeats: number;
+  total: number;
+  kills: number;
+  tower_kills: number;
+  dragon_kills: number;
+  baron_kills: number;
+  first_blood: number;
+  first_tower: number;
+  first_dragon: number;
+  first_baron: number;
+}
+
 export function useTeamStats(teamSlug: string, games: number = 5) {
   const { data, error, isLoading } = useSWR<TeamSideStats[]>(
     teamSlug ? `/api/team-stats/${teamSlug}?games=${games}` : null,

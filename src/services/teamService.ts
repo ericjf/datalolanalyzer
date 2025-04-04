@@ -2,6 +2,7 @@ import { API_CONFIG } from '../config/api';
 import teamsData from '../data/teams.json';
 
 export interface TeamSideStats {
+  side: 'blue' | 'red';
   name: string;
   winners: number;
   defeats: number;
@@ -46,7 +47,10 @@ export const getTeamStats = async (teamSlug: string, games: number = 5): Promise
   }
   
   const data = await response.json();
-  return data;
+  return data.map((stat: any) => ({
+    ...stat,
+    side: stat.name === 'red' ? 'red' : 'blue'
+  }));
 };
 
 export const getAllTeams = (): Team[] => {
