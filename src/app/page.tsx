@@ -1,25 +1,116 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getTeamStats, TeamSideStats } from '../services/teamService';
 
+interface Team {
+  name: string;
+  slug: string;
+}
+
+interface League {
+  name: string;
+  teams: Team[];
+}
+
+const leagues: League[] = [
+  {
+    name: 'LCK',
+    teams: [
+      { name: 'Gen.G', slug: 'geng' },
+      { name: 'DRX', slug: 'dragonx' },
+      { name: 'T1', slug: 't1' },
+      { name: 'Hanwha Life Esports', slug: 'hanwha-life-esports' },
+      { name: 'Dplus KIA', slug: 'dplus-kia' },
+      { name: 'Nongshim Red Force', slug: 'nongshim-red-force' },
+      { name: 'BNK FEARX', slug: 'fearx' },
+      { name: 'DN Freecs', slug: 'dn-freecs' },
+      { name: 'OKSavingsBank BRION', slug: 'fredit-brion' },
+      { name: 'KT Rolster', slug: 'kt-rolster' }
+    ]
+  },
+  {
+    name: 'LTA Sul',
+    teams: [
+      { name: 'Leviatan Esports', slug: 'leviatan-esports-league-of-legends' },
+      { name: 'FURIA Esports', slug: 'furia-uppercut' },
+      { name: 'LOUD', slug: 'loud' },
+      { name: 'RED Canids', slug: 'red-canids' },
+      { name: 'paiN Gaming', slug: 'pain-gaming' },
+      { name: 'Fluxo W7M', slug: 'fluxo-w7m' },
+      { name: 'Vivo Keyd Stars', slug: 'vivo-keyd-stars' },
+      { name: 'Isurus Estral', slug: 'isurus-estral' }
+    ]
+  },
+  {
+    name: 'LTA Norte',
+    teams: [
+      { name: 'FlyQuest', slug: 'flyquest' },
+      { name: 'Cloud9', slug: 'cloud9' },
+      { name: '100 Thieves', slug: '100-thieves' },
+      { name: 'Disguised', slug: 'disguised-league-of-legends' },
+      { name: 'Dignitas', slug: 'dignitas' },
+      { name: 'Team Liquid', slug: 'liquid' },
+      { name: 'LYON', slug: 'lyon' },
+      { name: 'Shopify Rebellion', slug: 'shopify-rebellion-league-of-legends' }
+    ]
+  },
+  {
+    name: 'LEC',
+    teams: [
+      { name: 'SK Gaming', slug: 'sk-gaming' },
+      { name: 'Karmine Corp', slug: 'karmine-corp-academy' },
+      { name: 'Fnatic', slug: 'fnatic' },
+      { name: 'Team Vitality', slug: 'vitality' },
+      { name: 'Team Heretics', slug: 'team-heretics' },
+      { name: 'BDS', slug: 'bds' },
+      { name: 'G2 Esports', slug: 'g2-esports' },
+      { name: 'Movistar KOI', slug: 'mad-lions-league-of-legends' },
+      { name: 'GIANTX', slug: 'giantx' },
+      { name: 'Rogue', slug: 'rogue' }
+    ]
+  },
+  {
+    name: 'LPL',
+    teams: [
+      { name: 'Top Esports', slug: 'top-esports' },
+      { name: 'Invictus Gaming', slug: 'invictus-gaming' },
+      { name: 'Weibo Gaming', slug: 'weibo-gaming-league-of-legends' },
+      { name: 'Bilibili Gaming', slug: 'bilibili-gaming' },
+      { name: 'Anyone\'s Legend', slug: 'anyone-s-legend' },
+      { name: 'Team WE', slug: 'we' },
+      { name: 'Ultra Prime', slug: 'ultra-prime' },
+      { name: 'FunPlus Phoenix', slug: 'funplus-phoenix' },
+      { name: 'JD Gaming', slug: 'qg-reapers' },
+      { name: 'Ninjas in Pyjamas', slug: 'ninjas-in-pyjamas' },
+      { name: 'ThunderTalk Gaming', slug: 'tt' },
+      { name: 'LGD Gaming', slug: 'lgd-gaming' },
+      { name: 'Royal Never Give Up', slug: 'royal-never-give-up' },
+      { name: 'EDward Gaming', slug: 'edward-gaming' },
+      { name: 'Oh My God', slug: 'omg' },
+      { name: 'LNG Esports', slug: 'lng-esports' }
+    ]
+  }
+];
+
 export default function Home() {
+  const [activeLeague, setActiveLeague] = useState(0);
   const [teamSlug, setTeamSlug] = useState('');
   const [gamesCount, setGamesCount] = useState(5);
   const [teamData, setTeamData] = useState<TeamSideStats[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleTeamClick = async (slug: string, count?: number) => {
+    setTeamSlug(slug);
     setLoading(true);
     setError(null);
     
     try {
-      const data = await getTeamStats(teamSlug, gamesCount);
+      const data = await getTeamStats(slug, count || gamesCount);
       setTeamData(data);
     } catch (err) {
-      setError('Erro ao buscar dados do time. Verifique o slug e tente novamente.');
+      setError('Erro ao buscar dados do time. Tente novamente.');
       console.error(err);
     } finally {
       setLoading(false);
@@ -160,51 +251,67 @@ export default function Home() {
         Datalol Analyzer
       </h1>
       
-      <div className="w-full max-w-2xl">
-        <form onSubmit={handleSubmit} className="space-y-4 bg-white p-6 rounded-lg shadow-sm">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="teamSlug" className="block text-sm font-medium mb-2 text-gray-700">
-                Nome do Time (Slug)
-              </label>
-              <input
-                type="text"
-                id="teamSlug"
-                value={teamSlug}
-                onChange={(e) => setTeamSlug(e.target.value)}
-                placeholder="Ex: t1"
-                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
-                disabled={loading}
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="gamesCount" className="block text-sm font-medium mb-2 text-gray-700">
-                Número de Jogos
-              </label>
-              <select
-                id="gamesCount"
-                value={gamesCount}
-                onChange={(e) => setGamesCount(Number(e.target.value))}
-                className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
-                disabled={loading}
+      <div className="w-full max-w-4xl space-y-8">
+        {/* Abas das Ligas */}
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div className="flex border-b">
+            {leagues.map((league, index) => (
+              <button
+                key={league.name}
+                onClick={() => setActiveLeague(index)}
+                className={`flex-1 py-4 px-6 text-sm font-medium transition-colors ${
+                  activeLeague === index
+                    ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-500'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
               >
-                <option value="5">5 jogos</option>
-                <option value="10">10 jogos</option>
-                <option value="15">15 jogos</option>
-                <option value="20">20 jogos</option>
-              </select>
-            </div>
+                {league.name}
+              </button>
+            ))}
           </div>
           
-          <button
-            type="submit"
-            className="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition-colors disabled:bg-blue-300"
-            disabled={loading}
-          >
-            {loading ? 'Carregando...' : 'Buscar Dados'}
-          </button>
-        </form>
+          {/* Lista de Times */}
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {leagues[activeLeague].teams.map((team) => (
+                <button
+                  key={team.slug}
+                  onClick={() => handleTeamClick(team.slug)}
+                  className="p-4 text-left bg-gray-50 rounded-md border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                >
+                  <h3 className="font-medium text-gray-800">{team.name}</h3>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Seletor de Número de Jogos */}
+        {teamData && (
+          <div className="bg-white p-4 rounded-lg shadow-sm">
+            <label htmlFor="gamesCount" className="block text-sm font-medium mb-2 text-gray-700">
+              Número de Jogos
+            </label>
+            <select
+              id="gamesCount"
+              value={gamesCount}
+              onChange={(e) => {
+                const newGamesCount = Number(e.target.value);
+                setGamesCount(newGamesCount);
+                if (teamSlug) {
+                  handleTeamClick(teamSlug, newGamesCount);
+                }
+              }}
+              className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+              disabled={loading}
+            >
+              <option value="5">5 jogos</option>
+              <option value="10">10 jogos</option>
+              <option value="15">15 jogos</option>
+              <option value="20">20 jogos</option>
+            </select>
+          </div>
+        )}
 
         {error && (
           <div className="mt-4 p-4 bg-red-100 text-red-700 rounded-md">
@@ -212,9 +319,17 @@ export default function Home() {
           </div>
         )}
 
+        {loading && (
+          <div className="text-center py-4">
+            <p className="text-gray-600">Carregando dados do time...</p>
+          </div>
+        )}
+
         {teamData && (
           <div className="mt-8 space-y-6">
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800">Estatísticas do Time</h2>
+            <h2 className="text-2xl font-semibold mb-4 text-gray-800">
+              Estatísticas {leagues[activeLeague].teams.find(t => t.slug === teamSlug)?.name}
+            </h2>
             {renderTotalStats(teamData)}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {teamData.map(renderSideStats)}

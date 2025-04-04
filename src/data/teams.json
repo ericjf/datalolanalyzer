@@ -1,0 +1,16 @@
+{
+  "teams": [
+    {
+      "name": "T1",
+      "slug": "t1",
+      "region": "LCK",
+      "isActive": true
+    },
+    {
+      "name": "Cloud9",
+      "slug": "cloud9",
+      "region": "LCS",
+      "isActive": true
+    }
+  ]
+} 
