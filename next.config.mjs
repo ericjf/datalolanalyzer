@@ -4,10 +4,6 @@ const nextConfig = {
     // Desabilita a verificação de ESLint durante o build
     ignoreDuringBuilds: true,
   },
-  typescript: {
-    // Desabilita a verificação de tipos durante o build
-    ignoreBuildErrors: true,
-  },
 };
 
 export default nextConfig; 
