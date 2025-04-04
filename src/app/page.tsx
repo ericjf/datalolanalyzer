@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getTeamStats, TeamSideStats } from '../services/teamService';
 
 interface Team {

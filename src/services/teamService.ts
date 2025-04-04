@@ -65,7 +65,7 @@ export const validateTeamSlug = async (slug: string): Promise<boolean> => {
     
     // Se retornar um array, significa que o time existe
     return Array.isArray(data);
-  } catch {
+  } catch (error) {
     return false;
   }
 };
