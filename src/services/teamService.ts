@@ -122,4 +122,28 @@ export async function getTeamInfo(teamSlug: string): Promise<TeamInfo> {
       slug: teamSlug
     };
   }
-} 
+}
+
+export const getTeamLogoUrl = (teamSlug: string): string => {
+  return `${API_CONFIG.baseUrl}/team/${teamSlug}/logo`;
+};
+
+export interface TeamDetails {
+  team: {
+    name: string;
+    slug: string;
+    image_url: string;
+  };
+}
+
+export const getTeamDetails = async (teamSlug: string): Promise<TeamDetails> => {
+  const url = `${API_CONFIG.baseUrl}/stats/series/league-of-legends-lpl-china-split-2-2025/teams/${teamSlug}`;
+  const response = await fetch(url);
+  
+  if (!response.ok) {
+    throw new Error('Erro ao buscar detalhes do time');
+  }
+  
+  const data = await response.json();
+  return data;
+}; 

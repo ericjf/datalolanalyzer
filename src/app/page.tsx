@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getTeamStats, TeamSideStats } from '../services/teamService';
+import { getTeamStats, TeamSideStats, getTeamDetails, TeamDetails } from '../services/teamService';
 
 interface Team {
   name: string;
@@ -98,6 +98,7 @@ export default function Home() {
   const [teamSlug, setTeamSlug] = useState('');
   const [gamesCount, setGamesCount] = useState(5);
   const [teamData, setTeamData] = useState<TeamSideStats[] | null>(null);
+  const [teamDetails, setTeamDetails] = useState<TeamDetails | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -107,8 +108,12 @@ export default function Home() {
     setError(null);
     
     try {
-      const data = await getTeamStats(slug, count || gamesCount);
-      setTeamData(data);
+      const [statsData, detailsData] = await Promise.all([
+        getTeamStats(slug, count || gamesCount),
+        getTeamDetails(slug)
+      ]);
+      setTeamData(statsData);
+      setTeamDetails(detailsData);
     } catch (err) {
       setError('Erro ao buscar dados do time. Tente novamente.');
       console.error(err);
@@ -157,7 +162,20 @@ export default function Home() {
 
     return (
       <div className="p-4 bg-gray-100 rounded-md border border-gray-200 mb-6">
-        <h3 className="text-lg font-semibold mb-3 text-gray-800">Estatísticas Gerais</h3>
+        <div className="flex items-center gap-4 mb-3">
+          {teamDetails?.team.image_url && (
+            <img 
+              src={teamDetails.team.image_url} 
+              alt={`Logo do ${teamDetails.team.name}`}
+              className="w-8 h-8 object-contain"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+              }}
+            />
+          )}
+          <h3 className="text-lg font-semibold text-gray-800">Estatísticas Gerais</h3>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
             <p className="text-sm text-gray-600">Vitórias/Derrotas</p>
