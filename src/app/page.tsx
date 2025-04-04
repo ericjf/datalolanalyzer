@@ -1,126 +1,31 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { getTeamStats, TeamSideStats, getTeamDetails, TeamDetails } from '../services/teamService';
-
-interface Team {
-  name: string;
-  slug: string;
-}
-
-interface League {
-  name: string;
-  teams: Team[];
-}
-
-const leagues: League[] = [
-  {
-    name: 'LCK',
-    teams: [
-      { name: 'Gen.G', slug: 'geng' },
-      { name: 'DRX', slug: 'dragonx' },
-      { name: 'T1', slug: 't1' },
-      { name: 'Hanwha Life Esports', slug: 'hanwha-life-esports' },
-      { name: 'Dplus KIA', slug: 'dplus-kia' },
-      { name: 'Nongshim Red Force', slug: 'nongshim-red-force' },
-      { name: 'BNK FEARX', slug: 'fearx' },
-      { name: 'DN Freecs', slug: 'dn-freecs' },
-      { name: 'OKSavingsBank BRION', slug: 'fredit-brion' },
-      { name: 'KT Rolster', slug: 'kt-rolster' }
-    ]
-  },
-  {
-    name: 'LTA Sul',
-    teams: [
-      { name: 'Leviatan Esports', slug: 'leviatan-esports-league-of-legends' },
-      { name: 'FURIA Esports', slug: 'furia-uppercut' },
-      { name: 'LOUD', slug: 'loud' },
-      { name: 'RED Canids', slug: 'red-canids' },
-      { name: 'paiN Gaming', slug: 'pain-gaming' },
-      { name: 'Fluxo W7M', slug: 'fluxo-w7m' },
-      { name: 'Vivo Keyd Stars', slug: 'vivo-keyd-stars' },
-      { name: 'Isurus Estral', slug: 'isurus-estral' }
-    ]
-  },
-  {
-    name: 'LTA Norte',
-    teams: [
-      { name: 'FlyQuest', slug: 'flyquest' },
-      { name: 'Cloud9', slug: 'cloud9' },
-      { name: '100 Thieves', slug: '100-thieves' },
-      { name: 'Disguised', slug: 'disguised-league-of-legends' },
-      { name: 'Dignitas', slug: 'dignitas' },
-      { name: 'Team Liquid', slug: 'liquid' },
-      { name: 'LYON', slug: 'lyon' },
-      { name: 'Shopify Rebellion', slug: 'shopify-rebellion-league-of-legends' }
-    ]
-  },
-  {
-    name: 'LEC',
-    teams: [
-      { name: 'SK Gaming', slug: 'sk-gaming' },
-      { name: 'Karmine Corp', slug: 'karmine-corp-academy' },
-      { name: 'Fnatic', slug: 'fnatic' },
-      { name: 'Team Vitality', slug: 'vitality' },
-      { name: 'Team Heretics', slug: 'team-heretics' },
-      { name: 'BDS', slug: 'bds' },
-      { name: 'G2 Esports', slug: 'g2-esports' },
-      { name: 'Movistar KOI', slug: 'mad-lions-league-of-legends' },
-      { name: 'GIANTX', slug: 'giantx' },
-      { name: 'Rogue', slug: 'rogue' }
-    ]
-  },
-  {
-    name: 'LPL',
-    teams: [
-      { name: 'Top Esports', slug: 'top-esports' },
-      { name: 'Invictus Gaming', slug: 'invictus-gaming' },
-      { name: 'Weibo Gaming', slug: 'weibo-gaming-league-of-legends' },
-      { name: 'Bilibili Gaming', slug: 'bilibili-gaming' },
-      { name: 'Anyone\'s Legend', slug: 'anyone-s-legend' },
-      { name: 'Team WE', slug: 'we' },
-      { name: 'Ultra Prime', slug: 'ultra-prime' },
-      { name: 'FunPlus Phoenix', slug: 'funplus-phoenix' },
-      { name: 'JD Gaming', slug: 'qg-reapers' },
-      { name: 'Ninjas in Pyjamas', slug: 'ninjas-in-pyjamas' },
-      { name: 'ThunderTalk Gaming', slug: 'tt' },
-      { name: 'LGD Gaming', slug: 'lgd-gaming' },
-      { name: 'Royal Never Give Up', slug: 'royal-never-give-up' },
-      { name: 'EDward Gaming', slug: 'edward-gaming' },
-      { name: 'Oh My God', slug: 'omg' },
-      { name: 'LNG Esports', slug: 'lng-esports' }
-    ]
-  }
-];
+import { useTeamStats, useTeamDetails, useAllTeamsDetails } from '../hooks/useTeamData';
+import { TeamLogo } from '../components/TeamLogo';
+import { Navigation } from '../components/Navigation';
+import { leagues } from '../data/leagues';
 
 export default function Home() {
   const [activeLeague, setActiveLeague] = useState(0);
   const [teamSlug, setTeamSlug] = useState('');
   const [gamesCount, setGamesCount] = useState(5);
-  const [teamData, setTeamData] = useState<TeamSideStats[] | null>(null);
-  const [teamDetails, setTeamDetails] = useState<TeamDetails | null>(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleTeamClick = async (slug: string, count?: number) => {
+  const { teamData, isLoading: statsLoading } = useTeamStats(teamSlug, gamesCount);
+  const { teamDetails, isLoading: detailsLoading } = useTeamDetails(teamSlug);
+  
+  // Pré-carregar detalhes de todos os times
+  const allTeams = leagues.flatMap(league => league.teams);
+  const teamDetailsCache = useAllTeamsDetails(allTeams);
+
+  const handleTeamClick = (slug: string, count?: number) => {
     setTeamSlug(slug);
-    setLoading(true);
     setError(null);
-    
-    try {
-      const [statsData, detailsData] = await Promise.all([
-        getTeamStats(slug, count || gamesCount),
-        getTeamDetails(slug)
-      ]);
-      setTeamData(statsData);
-      setTeamDetails(detailsData);
-    } catch (err) {
-      setError('Erro ao buscar dados do time. Tente novamente.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
   };
+
+  const loading = statsLoading || detailsLoading;
 
   const calculateTotalStats = (data: TeamSideStats[]) => {
     return data.reduce((acc, side) => ({
@@ -265,6 +170,7 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center p-24 bg-gray-50">
+      <Navigation />
       <h1 className="text-4xl font-bold mb-8 text-gray-800">
         Datalol Analyzer
       </h1>
@@ -291,15 +197,25 @@ export default function Home() {
           {/* Lista de Times */}
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {leagues[activeLeague].teams.map((team) => (
-                <button
-                  key={team.slug}
-                  onClick={() => handleTeamClick(team.slug)}
-                  className="p-4 text-left bg-gray-50 rounded-md border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-colors"
-                >
-                  <h3 className="font-medium text-gray-800">{team.name}</h3>
-                </button>
-              ))}
+              {leagues[activeLeague].teams.map((team) => {
+                const teamDetail = teamDetailsCache.find(t => t.slug === team.slug);
+                return (
+                  <button
+                    key={team.slug}
+                    onClick={() => handleTeamClick(team.slug)}
+                    className="p-4 text-left bg-gray-50 rounded-md border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-colors flex items-center gap-3"
+                  >
+                    {teamDetail?.details?.team.image_url && (
+                      <TeamLogo
+                        src={teamDetail.details.team.image_url}
+                        alt={`Logo do ${team.name}`}
+                        className="w-6 h-6"
+                      />
+                    )}
+                    <h3 className="font-medium text-gray-800">{team.name}</h3>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
