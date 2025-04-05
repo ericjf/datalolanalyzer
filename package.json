@@ -9,7 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@types/cheerio": "^0.22.35",
+    "axios": "^1.8.4",
+    "cheerio": "^1.0.0",
     "next": "15.2.4",
+    "openai": "^4.91.1",
+    "playwright": "^1.51.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "swr": "^2.3.3"

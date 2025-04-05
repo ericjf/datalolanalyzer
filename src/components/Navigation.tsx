@@ -28,6 +28,16 @@ export function Navigation() {
           >
             Comparativo
           </Link>
+          <Link
+            href="/power-rankings"
+            className={`px-3 py-2 rounded-md text-sm font-medium ${
+              pathname === '/power-rankings'
+                ? 'bg-blue-50 text-blue-600'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            Power Rankings
+          </Link>
         </div>
       </div>
     </nav>
