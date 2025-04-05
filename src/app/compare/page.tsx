@@ -6,12 +6,16 @@ import { TeamLogo } from '../../components/TeamLogo';
 import { Navigation } from '../../components/Navigation';
 import { leagues } from '../../data/leagues';
 import { TeamSideStats } from '../../services/teamService';
+import { analyzeTeamComparison, TeamAnalysis } from '../../services/openaiService';
 
 export default function ComparePage() {
   const [team1Slug, setTeam1Slug] = useState('');
   const [team2Slug, setTeam2Slug] = useState('');
   const [activeLeague, setActiveLeague] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [analysis, setAnalysis] = useState<TeamAnalysis | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const { teamData: team1Data, isLoading: team1Loading } = useTeamStats(team1Slug, 10);
   const { teamData: team2Data, isLoading: team2Loading } = useTeamStats(team2Slug, 10);
@@ -32,6 +36,32 @@ export default function ComparePage() {
   };
 
   const loading = team1Loading || team2Loading || team1DetailsLoading || team2DetailsLoading;
+
+  const handleCompare = async () => {
+    if (!team1Slug || !team2Slug) {
+      setError('Por favor, selecione dois times para comparar');
+      return;
+    }
+
+    setError(null);
+    setAnalysis(null);
+
+    // Iniciar análise da IA
+    setIsAnalyzing(true);
+    try {
+      const aiAnalysis = await analyzeTeamComparison(
+        team1Slug,
+        team2Slug,
+        team1Data || [],
+        team2Data || []
+      );
+      setAnalysis(aiAnalysis);
+    } catch (error) {
+      console.error('Erro na análise da IA:', error);
+      // Não vamos mostrar erro para o usuário, apenas não exibimos a análise
+    }
+    setIsAnalyzing(false);
+  };
 
   const renderComparison = () => {
     if (!team1Data || !team2Data) return null;
@@ -269,7 +299,142 @@ export default function ComparePage() {
           </div>
         )}
 
-        {team1Data && team2Data && renderComparison()}
+        {team1Data && team2Data && (
+          <div className="mt-8 space-y-8">
+            {/* Botão para iniciar análise */}
+            <div className="flex justify-center">
+              <button
+                onClick={handleCompare}
+                disabled={isAnalyzing}
+                className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isAnalyzing ? 'Analisando...' : 'Analisar Times'}
+              </button>
+            </div>
+
+            {/* Análise da IA */}
+            {isAnalyzing ? (
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <div className="flex items-center justify-center space-x-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+                  <p className="text-gray-600">Analisando times...</p>
+                </div>
+              </div>
+            ) : analysis ? (
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Análise da IA</h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-medium text-gray-900">Resumo</h4>
+                    <p className="text-gray-600">{analysis.summary}</p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium text-gray-900">Pontos Fortes</h4>
+                    <ul className="list-disc list-inside text-gray-600">
+                      {analysis.strengths.map((strength, index) => (
+                        <li key={index}>{strength}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium text-gray-900">Pontos Fracos</h4>
+                    <ul className="list-disc list-inside text-gray-600">
+                      {analysis.weaknesses.map((weakness, index) => (
+                        <li key={index}>{weakness}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h4 className="font-medium text-gray-900">Recomendações</h4>
+                    <ul className="list-disc list-inside text-gray-600">
+                      {analysis.recommendations.map((recommendation, index) => (
+                        <li key={index}>{recommendation}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Análise específica por lado */}
+                  <div className="mt-6 space-y-6">
+                    <div>
+                      <h4 className="font-medium text-gray-900">Análise: {team1Slug} (Azul) vs {team2Slug} (Vermelho)</h4>
+                      <div className="mt-2 grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-600">Torres Esperadas</p>
+                          <p className="font-medium text-gray-900">
+                            {team1Slug}: {analysis.sideAnalysis.blueVsRed.expectedTowers.team1} | 
+                            {team2Slug}: {analysis.sideAnalysis.blueVsRed.expectedTowers.team2}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Dragões Esperados</p>
+                          <p className="font-medium text-gray-900">
+                            {team1Slug}: {analysis.sideAnalysis.blueVsRed.expectedDragons.team1} | 
+                            {team2Slug}: {analysis.sideAnalysis.blueVsRed.expectedDragons.team2}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Barões Esperados</p>
+                          <p className="font-medium text-gray-900">
+                            {team1Slug}: {analysis.sideAnalysis.blueVsRed.expectedBarons.team1} | 
+                            {team2Slug}: {analysis.sideAnalysis.blueVsRed.expectedBarons.team2}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Vencedor Esperado</p>
+                          <p className="font-medium text-gray-900">
+                            {analysis.sideAnalysis.blueVsRed.expectedWinner} 
+                            ({analysis.sideAnalysis.blueVsRed.confidence}% confiança)
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-medium text-gray-900">Análise: {team1Slug} (Vermelho) vs {team2Slug} (Azul)</h4>
+                      <div className="mt-2 grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-600">Torres Esperadas</p>
+                          <p className="font-medium text-gray-900">
+                            {team1Slug}: {analysis.sideAnalysis.redVsBlue.expectedTowers.team1} | 
+                            {team2Slug}: {analysis.sideAnalysis.redVsBlue.expectedTowers.team2}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Dragões Esperados</p>
+                          <p className="font-medium text-gray-900">
+                            {team1Slug}: {analysis.sideAnalysis.redVsBlue.expectedDragons.team1} | 
+                            {team2Slug}: {analysis.sideAnalysis.redVsBlue.expectedDragons.team2}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Barões Esperados</p>
+                          <p className="font-medium text-gray-900">
+                            {team1Slug}: {analysis.sideAnalysis.redVsBlue.expectedBarons.team1} | 
+                            {team2Slug}: {analysis.sideAnalysis.redVsBlue.expectedBarons.team2}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Vencedor Esperado</p>
+                          <p className="font-medium text-gray-900">
+                            {analysis.sideAnalysis.redVsBlue.expectedWinner} 
+                            ({analysis.sideAnalysis.redVsBlue.confidence}% confiança)
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Estatísticas existentes */}
+            {renderComparison()}
+          </div>
+        )}
       </div>
     </main>
   );
