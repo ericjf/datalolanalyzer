@@ -7,6 +7,87 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
+// Função para limpar o nome do time
+function cleanTeamName(name: string): string {
+  // Remove sufixos comuns de regiões e ligas
+  const suffixesToRemove = [
+    'LCK', 'LPL', 'LCS', 'LEC', 'LFL', 'LJL', 'PCS', 'VCS', 'CBLOL', 'LLA',
+    'TESL', 'LTA', 'LCO', 'LCL', 'TCL', 'LPL', 'LMS', 'LST', 'LVP', 'LFL'
+  ];
+
+  let cleanName = name;
+  
+  // Remove sufixos de região/liga
+  suffixesToRemove.forEach(suffix => {
+    const regex = new RegExp(suffix + '$', 'i');
+    cleanName = cleanName.replace(regex, '');
+  });
+
+  // Remove duplicações de nomes (ex: T1T1 -> T1)
+  cleanName = cleanName.replace(/(.+?)\1+/g, '$1');
+
+  // Remove abreviações comuns
+  const abbreviationsToRemove = [
+    'FLY', 'DIG', 'T', 'TES', 'JDG', 'EDG', 'RNG', 'WE', 'OMG', 'LNG',
+    'RA', 'TT', 'UP', 'AL', 'IG', 'FPX', 'RW', 'V5', 'SN', 'BLG'
+  ];
+
+  abbreviationsToRemove.forEach(abbr => {
+    const regex = new RegExp(abbr + '$', 'i');
+    cleanName = cleanName.replace(regex, '');
+  });
+
+  // Remove espaços extras
+  cleanName = cleanName.trim();
+
+  // Casos especiais
+  const specialCases: { [key: string]: string } = {
+    'TOPESPORTSTESLPL': 'TOP ESPORTS',
+    'T1T1LCK': 'T1',
+    'FlyQuestFLYLTA': 'FlyQuest',
+    'TeamLiquidLCS': 'Team Liquid',
+    'Cloud9LCS': 'Cloud9',
+    'EvilGeniusesLCS': 'Evil Geniuses',
+    'NRGESPORTSLCS': 'NRG ESPORTS',
+    '100ThievesLCS': '100 Thieves',
+    'DignitasLCS': 'Dignitas',
+    'ImmortalsLCS': 'Immortals',
+    'G2ESPORTSLEC': 'G2 ESPORTS',
+    'FnaticLEC': 'Fnatic',
+    'MADLIONSLEAGUEOFLEGENDS': 'MAD LIONS',
+    'TeamVitalityLEC': 'Team Vitality',
+    'TeamBDSLEC': 'Team BDS',
+    'SKGamingLEC': 'SK Gaming',
+    'TeamHereticsLEC': 'Team Heretics',
+    'KarmineCorpLEC': 'Karmine Corp',
+    'ExcelLEC': 'Excel',
+    'RogueLEC': 'Rogue',
+    'KOILEC': 'KOI',
+    'GiantXLEC': 'GiantX',
+    'THUNDERTALKGAMINGT': 'THUNDER TALK GAMING',
+    'Beijing': 'Beijing JDG Intel Esports',
+    'SHANGHAI': 'SHANGHAI EDWARD GAMING',
+    'TOPESPORTSTES': 'TOP ESPORTS',
+    'FlyQuestFLY': 'FlyQuest',
+    'DignitasDIG': 'Dignitas'
+  };
+
+  // Se o nome limpo estiver nos casos especiais, retorna o valor mapeado
+  if (specialCases[cleanName]) {
+    return specialCases[cleanName];
+  }
+
+  // Se o nome começar com "Beijing" ou "SHANGHAI", retorna o nome completo
+  if (cleanName.startsWith('Beijing')) {
+    return 'Beijing JDG Intel Esports';
+  }
+  if (cleanName.startsWith('SHANGHAI')) {
+    return 'SHANGHAI EDWARD GAMING';
+  }
+
+  return cleanName;
+}
+
 export async function fetchPowerRankings(): Promise<PowerRankingTeam[]> {
   console.log('Iniciando busca dos Power Rankings...');
   
@@ -96,7 +177,16 @@ export async function fetchPowerRankings(): Promise<PowerRankingTeam[]> {
 
     console.log('Rankings extraídos com sucesso:', rankings.length);
     console.log('Primeiros 3 rankings:', rankings.slice(0, 3));
-    return rankings;
+
+    // Limpa os nomes dos times
+    const cleanedRankings = rankings.map(ranking => ({
+      ...ranking,
+      teamName: cleanTeamName(ranking.teamName)
+    }));
+
+    console.log('Rankings extraídos com sucesso:', cleanedRankings.length);
+    console.log('Primeiros 3 rankings:', JSON.stringify(cleanedRankings.slice(0, 3), null, 2));
+    return cleanedRankings;
 
   } catch (error) {
     console.error('Erro ao buscar Power Rankings:', error);
